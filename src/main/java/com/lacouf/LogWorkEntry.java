@@ -60,4 +60,8 @@ public class LogWorkEntry {
     public int getLogWorkSeconds() {
         return logWorkSeconds;
     }
+
+    public LocalDateTime getLogWorkDateTime() {
+        return logWorkDateTime;
+    }
 }
