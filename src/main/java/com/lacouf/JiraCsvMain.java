@@ -5,14 +5,21 @@ import java.util.List;
 public class JiraCsvMain {
 
     public static void main(String[] args) throws Exception {
-
-        if (args.length < 2) {
-            System.out.printf("Usage java -jar JiraCSV.jar file.csv 02/05/20");
+        if (args.length != 0 && args.length != 2) {
+            System.out.println("Usage:");
+            System.out.println("  From REST API:");
+            System.out.println("    java -jar JiraCSV.jar");
+            System.out.println("  With CSV file:");
+            System.out.println("    java -jar JiraCSV.jar file.csv 02/05/20");
             System.exit(0);
         }
 
-        JiraCsvParser parser = new JiraCsvParser();
-        List<LogWorkEntry> logWorkEntries = parser.parse(args[0]);
-        new JiraCsvReporter().printReport(logWorkEntries, args[1]);
+        if (args.length == 0) {
+            new JiraCloudConnector().getAllIssuesAsync().thenAccept(new JiraReporter()::printRestReport).join();
+        } else {
+            JiraCsvParser parser = new JiraCsvParser();
+            List<LogWorkEntry> logWorkEntries = parser.parse(args[0]);
+            new JiraReporter().printCsvReport(logWorkEntries, args[1]);
+        }
     }
 }

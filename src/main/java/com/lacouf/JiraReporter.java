@@ -8,11 +8,15 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class JiraCsvReporter {
+public class JiraReporter {
     private Map<String, Double> hoursPerUser = new HashMap<>();
 
-    public void printReport(List<LogWorkEntry> entries, String dateFrom) {
-        LocalDate from = paresDate(dateFrom);
+    public void printRestReport(List<LogWorkEntry> entries) {
+        printCsvReport(entries, "01-01-1900");
+    }
+
+    public void printCsvReport(List<LogWorkEntry> entries, String dateFrom) {
+        LocalDate from = parseDate(dateFrom);
         final Map<String, List<LogWorkEntry>> result =
             entries.stream()
                    .filter(wl -> wl.getLogWorkDateTime().toLocalDate().isAfter(from))
@@ -26,7 +30,7 @@ public class JiraCsvReporter {
               .forEach(e -> printEntry(e));
     }
 
-    private LocalDate paresDate(String dateFrom) {
+    private LocalDate parseDate(String dateFrom) {
         System.out.println("Date From: " + dateFrom);
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd-MM-yyyy", Locale.US);
         return LocalDate.parse(dateFrom, dtf);
