@@ -58,15 +58,20 @@ public class JiraCloudConnector {
             var obj = (JSONObject) o;
             obj.getJSONObject("fields").getJSONObject("worklog").getJSONArray("worklogs").forEach(wl -> {
                 var log = (JSONObject) wl;
-                list.add(LogWorkEntry.builder()
-                        .taskId(obj.getString("key"))
-                        .userTask(getSummary(obj))
-                        .userName(log.getJSONObject("author").getString("displayName"))
-                        .logWorkDescription(log.getJSONObject("comment").getJSONArray("content").getJSONObject(0).getJSONArray("content").getJSONObject(0).getString("text"))
-                        .logWorkDate(log.getString("created"))
-                        .logWorkSeconds(log.getInt("timeSpentSeconds"))
-                        .logWorkDateTime(LocalDateTime.parse(log.getString("created").replaceFirst("\\.[0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]", "")))
-                        .build());
+                try {
+                    list.add(LogWorkEntry.builder()
+                            .taskId(obj.getString("key"))
+                            .userTask(getSummary(obj))
+                            .userName(log.getJSONObject("author").getString("displayName"))
+                            .logWorkDescription(log.getJSONObject("comment").getJSONArray("content").getJSONObject(0).getJSONArray("content").getJSONObject(0).getString("text"))
+                            .logWorkDate(log.getString("created"))
+                            .logWorkSeconds(log.getInt("timeSpentSeconds"))
+                            .logWorkDateTime(LocalDateTime.parse(log.getString("created").replaceFirst("\\.[0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]", "")))
+                            .build());
+                }
+                catch (Exception e) {
+                    System.err.println("Caught \"" + e.getMessage() + "\" on a worklog from " + obj.getString("key"));
+                }
             });
         });
 
