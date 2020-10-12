@@ -1,9 +1,15 @@
 package com.lacouf;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
+@Builder
+@AllArgsConstructor
 public class LogWorkEntry {
     private String taskId;
     private String userTask;
