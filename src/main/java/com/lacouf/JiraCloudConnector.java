@@ -45,10 +45,19 @@ public class JiraCloudConnector {
                 .thenApply(this::parseToEntity);
     }
 
-    @SneakyThrows
     private JSONArray parseJsonResults(HttpResponse<String> rb) {
-        var results = new JSONObject(rb.body());
-        return results.getJSONArray("issues");
+        try {
+            var results = new JSONObject(rb.body());
+            return results.getJSONArray("issues");
+        }
+        catch (Exception e) {
+            System.err.println("---- Erreur de parsing de la réponse ----");
+            System.err.println(e.getLocalizedMessage());
+            System.err.println("Réponse de JIRA: ");
+            System.err.println(rb.body());
+            System.exit(1);
+        }
+        return null;
     }
 
     private List<LogWorkEntry> parseToEntity(JSONArray array) {
