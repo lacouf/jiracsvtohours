@@ -45,10 +45,19 @@ public class JiraCloudConnector {
                 .thenApply(this::parseToEntity);
     }
 
-    @SneakyThrows
     private JSONArray parseJsonResults(HttpResponse<String> rb) {
-        var results = new JSONObject(rb.body());
-        return results.getJSONArray("issues");
+        try {
+            var results = new JSONObject(rb.body());
+            return results.getJSONArray("issues");
+        }
+        catch (Exception e) {
+            System.err.println("---- Erreur de parsing de la réponse ----");
+            System.err.println(e.getLocalizedMessage());
+            System.err.println("Réponse de JIRA: ");
+            System.err.println(rb.body());
+            System.exit(1);
+        }
+        return null;
     }
 
     private List<LogWorkEntry> parseToEntity(JSONArray array) {
@@ -58,15 +67,20 @@ public class JiraCloudConnector {
             var obj = (JSONObject) o;
             obj.getJSONObject("fields").getJSONObject("worklog").getJSONArray("worklogs").forEach(wl -> {
                 var log = (JSONObject) wl;
-                list.add(LogWorkEntry.builder()
-                        .taskId(obj.getString("key"))
-                        .userTask(getSummary(obj))
-                        .userName(log.getJSONObject("author").getString("displayName"))
-                        .logWorkDescription(log.getJSONObject("comment").getJSONArray("content").getJSONObject(0).getJSONArray("content").getJSONObject(0).getString("text"))
-                        .logWorkDate(log.getString("created"))
-                        .logWorkSeconds(log.getInt("timeSpentSeconds"))
-                        .logWorkDateTime(LocalDateTime.parse(log.getString("created").replaceFirst("\\.[0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]", "")))
-                        .build());
+                try {
+                    list.add(LogWorkEntry.builder()
+                            .taskId(obj.getString("key"))
+                            .userTask(getSummary(obj))
+                            .userName(log.getJSONObject("author").getString("displayName"))
+                            .logWorkDescription(log.getJSONObject("comment").getJSONArray("content").getJSONObject(0).getJSONArray("content").getJSONObject(0).getString("text"))
+                            .logWorkDate(log.getString("created"))
+                            .logWorkSeconds(log.getInt("timeSpentSeconds"))
+                            .logWorkDateTime(LocalDateTime.parse(log.getString("created").replaceFirst("\\.[0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]", "")))
+                            .build());
+                }
+                catch (Exception e) {
+                    System.err.println("Caught \"" + e.getMessage() + "\" on a worklog from " + obj.getString("key"));
+                }
             });
         });
 
