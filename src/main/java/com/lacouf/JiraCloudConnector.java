@@ -1,7 +1,7 @@
 package com.lacouf;
 
-import lombok.SneakyThrows;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.net.URI;
@@ -24,8 +24,9 @@ public class JiraCloudConnector {
                 .version(HttpClient.Version.HTTP_1_1)
                 .build();
 
-        var params = ("?jql=project = \"" + JiraConfig.PROJECT + "\" AND Sprint = \"" + JiraConfig.SPRINT_NAME
-                + "\" AND timespent != 0" + "&maxResults=" + JiraConfig.MAX_RESULTS + "&fields=" + JiraConfig.FIELDS)
+        var params = ("?jql=project = \"" + JiraConfig.PROJECT +
+                (JiraConfig.SPRINT_NAME != null ? "\" AND Sprint = \"" + JiraConfig.SPRINT_NAME : "") +
+                "\" AND timespent != 0" + "&maxResults=" + JiraConfig.MAX_RESULTS + "&fields=" + JiraConfig.FIELDS)
                 .replace(" ", "%20")
                 .replace("\"", "%22");
 
@@ -72,19 +73,33 @@ public class JiraCloudConnector {
                             .taskId(obj.getString("key"))
                             .userTask(getSummary(obj))
                             .userName(log.getJSONObject("author").getString("displayName"))
-                            .logWorkDescription(log.getJSONObject("comment").getJSONArray("content").getJSONObject(0).getJSONArray("content").getJSONObject(0).getString("text"))
+                            .logWorkDescription(getComment(log))
                             .logWorkDate(log.getString("created"))
                             .logWorkSeconds(log.getInt("timeSpentSeconds"))
                             .logWorkDateTime(LocalDateTime.parse(log.getString("created").replaceFirst("\\.[0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]", "")))
                             .build());
                 }
                 catch (Exception e) {
-                    System.err.println("Caught \"" + e.getMessage() + "\" on a worklog from " + obj.getString("key"));
+                    System.err.println("Caught \"" + e.getMessage() + "\" on a worklog from " + obj.getString("key") + " by " + log.getJSONObject("author").getString("displayName"));
                 }
             });
         });
 
         return list;
+    }
+
+    private String getComment(JSONObject log) {
+        String value;
+        try {
+            value = log.getJSONObject("comment").getJSONArray("content").getJSONObject(0).getJSONArray("content").getJSONObject(0).getString("text");
+        }
+        catch (Exception e) {
+            if (JiraConfig.INCLUDE_EMPTY_COMMENT)
+                value = "--- EMPTY COMMENT ---";
+            else
+                throw e;
+        }
+        return value;
     }
 
     private String getSummary(JSONObject obj) {
