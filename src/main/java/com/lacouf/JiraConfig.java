@@ -2,8 +2,8 @@ package com.lacouf;
 
 public class JiraConfig {
 
-    public static final String USER_EMAIL = "simonllandry@gmail.com";
-    public static final String API_TOKEN = "ST3MGsubFza4iCxsjxkS3FEC"; //https://id.atlassian.com/manage-profile/security pour générer
+    public static final String USER_EMAIL = "";
+    public static final String API_TOKEN = ""; //https://id.atlassian.com/manage-profile/security pour générer
     public static final String SITE_URL = "https://420-565-eq1.atlassian.net";
     public static final String PROJECT = "EQ3";
     public static final String SPRINT_NAME = "Sprint 3"; //si null, recherche par date seulement
