@@ -2,6 +2,7 @@ package com.lacouf;
 
 import lombok.SneakyThrows;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -11,7 +12,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class JiraReporter {
-    private final Map<String, Double> hoursPerUser = new HashMap<>();
+    private final Map<String, Integer> secondsPerUser = new HashMap<>();
 
     @SneakyThrows
     public void printRestReport(List<LogWorkEntry> entries) {
@@ -36,20 +37,29 @@ public class JiraReporter {
 
     private void printEntry(Map.Entry<String, List<LogWorkEntry>> e) {
         System.out.println(e.getKey());
-        hoursPerUser.put(e.getKey(), 0.0);
+        secondsPerUser.put(e.getKey(), 0);
         e.getValue().forEach(log -> printEntryDetail(e.getKey(), log));
-        System.out.println("total hours : " + hoursPerUser.get(e.getKey()));
+
+        System.out.println("Total time : " + prettyPrintTime(secondsPerUser.get(e.getKey())));
         System.out.println();
     }
 
     private void printEntryDetail(String user, LogWorkEntry log) {
-        final float hours = (float) log.getLogWorkSeconds() / 3600;
+        final int seconds = log.getLogWorkSeconds();
         System.out.println("\t" + log.getTaskId() + " "
                 + log.getLogWorkDescription() + " "
                 + log.getLogWorkDate() + " "
                 + log.getUserTask() + " "
-                + hours);
-        double newHours = hoursPerUser.get(user) + hours;
-        hoursPerUser.put(user, newHours);
+                + prettyPrintTime(seconds) );
+        int newSeconds = secondsPerUser.get(user) + seconds;
+        secondsPerUser.put(user, newSeconds);
+    }
+
+    private String prettyPrintTime(int seconds) {
+        return Duration.ofSeconds(seconds)
+                .toString()
+                .substring(2)
+                .toLowerCase()
+                .replaceAll(".[wdhm]", "$0 ");
     }
 }
