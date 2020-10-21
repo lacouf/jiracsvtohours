@@ -1,14 +1,12 @@
 package com.lacouf;
 
 import lombok.SneakyThrows;
+import org.apache.commons.lang3.StringUtils;
 
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class JiraReporter {
@@ -25,6 +23,8 @@ public class JiraReporter {
                 entries.stream()
                         .filter(wl -> wl.getLogWorkDateTime().toLocalDate().isAfter(from))
                         .collect(Collectors.groupingBy(LogWorkEntry::getUserName));
+
+        result.forEach((username, list) -> list.sort(Comparator.comparing(LogWorkEntry::getLogWorkDateTime)));
 
         result.entrySet().forEach(this::printEntry);
     }
@@ -46,11 +46,12 @@ public class JiraReporter {
 
     private void printEntryDetail(String user, LogWorkEntry log) {
         final int seconds = log.getLogWorkSeconds();
-        System.out.println("\t" + log.getTaskId() + " "
-                + log.getLogWorkDescription() + " "
+        System.out.println("\t" + StringUtils.rightPad(log.getTaskId(), 10)
+                + StringUtils.rightPad(prettyPrintTime(seconds), 8)
                 + log.getLogWorkDate() + " "
-                + log.getUserTask() + " "
-                + prettyPrintTime(seconds) );
+                + StringUtils.rightPad(log.getUserTask(), 120)
+                + log.getLogWorkDescription()
+        );
         int newSeconds = secondsPerUser.get(user) + seconds;
         secondsPerUser.put(user, newSeconds);
     }
