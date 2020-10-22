@@ -10,7 +10,7 @@ public class JiraCsvMain {
             System.out.println("  From REST API:");
             System.out.println("    java -jar JiraCSV.jar");
             System.out.println("  With CSV file:");
-            System.out.println("    java -jar JiraCSV.jar file.csv 02/05/20");
+            System.out.println("    java -jar JiraCSV.jar file.csv 21-10-2020 15:00");
             System.exit(0);
         }
 

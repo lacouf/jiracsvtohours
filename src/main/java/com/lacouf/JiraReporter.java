@@ -5,6 +5,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -14,14 +15,14 @@ public class JiraReporter {
 
     @SneakyThrows
     public void printRestReport(List<LogWorkEntry> entries) {
-        printCsvReport(entries, JiraConfig.START_DATE);
+        printCsvReport(entries, JiraConfig.START_DATE_TIME);
     }
 
     public void printCsvReport(List<LogWorkEntry> entries, String dateFrom) {
-        LocalDate from = parseDate(dateFrom);
+        LocalDateTime from = parseDate(dateFrom);
         final Map<String, List<LogWorkEntry>> result =
                 entries.stream()
-                        .filter(wl -> wl.getLogWorkDateTime().toLocalDate().isAfter(from))
+                        .filter(wl -> wl.getLogWorkDateTime().isAfter(from))
                         .collect(Collectors.groupingBy(LogWorkEntry::getUserName));
 
         result.forEach((username, list) -> list.sort(Comparator.comparing(LogWorkEntry::getLogWorkDateTime)));
@@ -29,10 +30,11 @@ public class JiraReporter {
         result.entrySet().forEach(this::printEntry);
     }
 
-    private LocalDate parseDate(String dateFrom) {
-        System.out.println("Date From: " + dateFrom);
-        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd-MM-yyyy", Locale.US);
-        return LocalDate.parse(dateFrom, dtf);
+    private LocalDateTime parseDate(String dateFrom) {
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm", Locale.US);
+        var date = LocalDateTime.parse(dateFrom, dtf);
+        System.out.println("Date From: " + date);
+        return date;
     }
 
     private void printEntry(Map.Entry<String, List<LogWorkEntry>> e) {
