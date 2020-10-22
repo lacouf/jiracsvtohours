@@ -1,8 +1,8 @@
 package com.lacouf;
 
-import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toMap;
 
 public class JiraCsvMain {
 
@@ -34,8 +34,8 @@ public class JiraCsvMain {
         Map<String, String> maps = new FileResourcesUtils().getProperties("api_keys.properties");
         return maps.entrySet()
             .stream()
-            .filter(e -> e.getKey().startsWith(prefix))
-            .collect(Collectors.toMap(
+            .filter(e -> e.getKey().startsWith(prefix.toLowerCase()))
+            .collect(toMap(
                 e -> e.getKey().substring(e.getKey().indexOf(".") + 1),
                 e -> e.getValue())
             );
