@@ -13,11 +13,6 @@ public class JiraReporter {
     private final Map<String, Integer> secondsPerUser = new HashMap<>();
     public static final DateTimeFormatter DTF = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm", Locale.US);
 
-    @SneakyThrows
-    public void printRestReport(List<LogWorkEntry> entries) {
-        printCsvReport(entries, JiraConfig.START_DATE_TIME);
-    }
-
     public void printCsvReport(List<LogWorkEntry> entries, String dateFrom) {
         LocalDateTime from = parseDate(dateFrom);
         final Map<String, List<LogWorkEntry>> result =
