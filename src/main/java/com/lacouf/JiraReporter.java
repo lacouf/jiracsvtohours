@@ -27,7 +27,6 @@ public class JiraReporter {
 
     private LocalDateTime parseDate(String dateFrom) {
         var date = LocalDateTime.parse(dateFrom, DTF);
-        System.out.println("Date From: " + date);
         return date;
     }
 
