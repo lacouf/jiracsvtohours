@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 
 public class JiraReporter {
     private final Map<String, Integer> secondsPerUser = new HashMap<>();
+    public static final DateTimeFormatter DTF = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm", Locale.US);
 
     @SneakyThrows
     public void printRestReport(List<LogWorkEntry> entries) {
@@ -30,8 +31,7 @@ public class JiraReporter {
     }
 
     private LocalDateTime parseDate(String dateFrom) {
-        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm", Locale.US);
-        var date = LocalDateTime.parse(dateFrom, dtf);
+        var date = LocalDateTime.parse(dateFrom, DTF);
         System.out.println("Date From: " + date);
         return date;
     }
@@ -49,7 +49,7 @@ public class JiraReporter {
         final int seconds = log.getLogWorkSeconds();
         System.out.println("\t" + StringUtils.rightPad(log.getTaskId(), 10)
                 + StringUtils.rightPad(prettyPrintTime(seconds), 8)
-                + log.getLogWorkDate() + " "
+                + log.getLogWorkDateTime().format(DTF) + " "
                 + StringUtils.rightPad(log.getUserTask(), 120)
                 + log.getLogWorkDescription()
         );
