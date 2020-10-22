@@ -4,24 +4,25 @@ import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 
 import java.time.Duration;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class JiraReporter {
     private final Map<String, Integer> secondsPerUser = new HashMap<>();
+    public static final DateTimeFormatter DTF = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm", Locale.US);
 
     @SneakyThrows
     public void printRestReport(List<LogWorkEntry> entries) {
-        printCsvReport(entries, JiraConfig.START_DATE);
+        printCsvReport(entries, JiraConfig.START_DATE_TIME);
     }
 
     public void printCsvReport(List<LogWorkEntry> entries, String dateFrom) {
-        LocalDate from = parseDate(dateFrom);
+        LocalDateTime from = parseDate(dateFrom);
         final Map<String, List<LogWorkEntry>> result =
                 entries.stream()
-                        .filter(wl -> wl.getLogWorkDateTime().toLocalDate().isAfter(from))
+                        .filter(wl -> wl.getLogWorkDateTime().isAfter(from))
                         .collect(Collectors.groupingBy(LogWorkEntry::getUserName));
 
         result.forEach((username, list) -> list.sort(Comparator.comparing(LogWorkEntry::getLogWorkDateTime)));
@@ -29,10 +30,10 @@ public class JiraReporter {
         result.entrySet().forEach(this::printEntry);
     }
 
-    private LocalDate parseDate(String dateFrom) {
-        System.out.println("Date From: " + dateFrom);
-        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd-MM-yyyy", Locale.US);
-        return LocalDate.parse(dateFrom, dtf);
+    private LocalDateTime parseDate(String dateFrom) {
+        var date = LocalDateTime.parse(dateFrom, DTF);
+        System.out.println("Date From: " + date);
+        return date;
     }
 
     private void printEntry(Map.Entry<String, List<LogWorkEntry>> e) {
@@ -48,7 +49,7 @@ public class JiraReporter {
         final int seconds = log.getLogWorkSeconds();
         System.out.println("\t" + StringUtils.rightPad(log.getTaskId(), 10)
                 + StringUtils.rightPad(prettyPrintTime(seconds), 8)
-                + log.getLogWorkDate() + " "
+                + log.getLogWorkDateTime().format(DTF) + " "
                 + StringUtils.rightPad(log.getUserTask(), 120)
                 + log.getLogWorkDescription()
         );
