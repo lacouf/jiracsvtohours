@@ -8,60 +8,83 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.LocalDateTime;
-import java.util.Base64;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
+import java.util.*;
 
 public class JiraCloudConnector {
 
     public static final boolean INCLUDE_EMPTY_COMMENT = true;
-
-    //Do not change
-    public static final String FIELDS = "id,worklog,parent,summary";
-    public static final int MAX_RESULTS = 500;
+    public static final String FIELDS = "id,parent,summary";
 
     private final HttpClient client;
-    private final HttpRequest request;
+    private final HttpRequest issuesRequest;
+    private final Map<String, String> props;
+    private final Map<Integer, JSONObject> issues;
 
     public JiraCloudConnector(Map<String, String> props) {
+        this.props = props;
+        issues = new HashMap<>();
         client = HttpClient.newBuilder()
-                           .version(HttpClient.Version.HTTP_1_1)
-                           .build();
+                .version(HttpClient.Version.HTTP_1_1)
+                .build();
 
         var params = ("?jql=project=" + props.get("project") +
-            (props.get("sprint") != null ? " AND sprint = \"" +  props.get("sprint") + "\"" : "") +
-            " AND timespent != 0" + "&maxResults=" + MAX_RESULTS + "&fields=" + FIELDS)
-            .replace(" ", "%20")
-            .replace("\"", "%22");
+                (props.get("sprint") != null ? " AND sprint = \"" + props.get("sprint") + "\"" : "") +
+                " AND timespent != 0" + "&fields=" + FIELDS)
+                .replace(" ", "%20")
+                .replace("\"", "%22");
 
-        request = HttpRequest.newBuilder()
-                             .GET()
-                             .uri(getUrl(props, params))
-                             .header("Authorization", "Basic "
-                                 + Base64.getEncoder().encodeToString((props.get("email") + ":" + props.get("apitoken")).getBytes()))
-                             .build();
+        issuesRequest = HttpRequest.newBuilder()
+                .GET()
+                .uri(getIssuesUrl(params))
+                .header("Authorization", "Basic "
+                        + Base64.getEncoder().encodeToString((props.get("email") + ":" + props.get("apitoken")).getBytes()))
+                .build();
 
     }
 
-    private URI getUrl(Map<String, String> props, String params) {
+    private URI getIssuesUrl(String params) {
         final URI url = URI.create(props.get("url") + "/rest/api/3/search" + params);
         System.out.println(url);
         return url;
     }
 
-    public CompletableFuture<List<LogWorkEntry>> getAllIssuesAsync() {
-        return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-                     .thenApply(this::parseJsonResults)
-                     .thenApply(this::parseToEntity);
+    private URI getWorklogsUrl(int issueId) {
+        return URI.create(props.get("url") + "/rest/api/3/issue/" + issueId + "/worklog");
+    }
+
+    public List<LogWorkEntry> getAllWorklogs() {
+        var logs = new LinkedList<LogWorkEntry>();
+
+        client.sendAsync(issuesRequest, HttpResponse.BodyHandlers.ofString())
+                .thenApply(this::parseJsonResults)
+                .join()
+                .forEach(i -> {
+                    var issue = (JSONObject) i;
+                    issues.put(issue.getInt("id"), issue);
+                });
+
+        issues.keySet().forEach(issueId -> {
+            final var req = HttpRequest.newBuilder()
+                    .GET()
+                    .uri(getWorklogsUrl(issueId))
+                    .header("Authorization", "Basic "
+                            + Base64.getEncoder().encodeToString((props.get("email") + ":" + props.get("apitoken")).getBytes()))
+                    .build();
+
+            logs.addAll(client.sendAsync(req, HttpResponse.BodyHandlers.ofString())
+                    .thenApply(this::parseToEntity)
+                    .join());
+        });
+
+        return logs;
     }
 
     private JSONArray parseJsonResults(HttpResponse<String> rb) {
         try {
             var results = new JSONObject(rb.body());
             return results.getJSONArray("issues");
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             System.err.println("---- Erreur de parsing de la réponse ----");
             System.err.println(e.getLocalizedMessage());
             System.err.println("Réponse de JIRA: ");
@@ -71,31 +94,30 @@ public class JiraCloudConnector {
         return null;
     }
 
-    private List<LogWorkEntry> parseToEntity(JSONArray array) {
+    private List<LogWorkEntry> parseToEntity(HttpResponse<String> rb) {
         var list = new LinkedList<LogWorkEntry>();
+        var array = new JSONObject(rb.body()).getJSONArray("worklogs");
 
         array.forEach(o -> {
-            var obj = (JSONObject) o;
-            obj.getJSONObject("fields").getJSONObject("worklog").getJSONArray("worklogs").forEach(wl -> {
-                var log = (JSONObject) wl;
+                var log = (JSONObject) o;
                 try {
                     list.add(LogWorkEntry.builder()
-                                         .taskId(obj.getString("key"))
-                                         .userTask(getSummary(obj))
-                                         .userName(log.getJSONObject("author").getString("displayName"))
-                                         .logWorkDescription(getComment(log))
-                                         .logWorkDate(log.getString("created"))
-                                         .logWorkSeconds(log.getInt("timeSpentSeconds"))
-                                         .logWorkDateTime(LocalDateTime.parse(log.getString("created").replaceFirst(
-                                             "\\.[0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]",
-                                             "")))
-                                         .build());
-                } catch (Exception e) {
-                    System.err.println("Caught \"" + e.getMessage() + "\" on a worklog from " + obj.getString("key") + " by " + log.getJSONObject(
-                        "author").getString("displayName"));
+                            .taskId(issues.get(log.getInt("issueId")).getString("key"))
+                            .userTask(getSummary(issues.get(log.getInt("issueId"))))
+                            .userName(log.getJSONObject("author").getString("displayName"))
+                            .logWorkDescription(getComment(log))
+                            .logWorkDate(log.getString("created"))
+                            .logWorkSeconds(log.getInt("timeSpentSeconds"))
+                            .logWorkDateTime(LocalDateTime.parse(log.getString("created").replaceFirst(
+                                    "\\.[0-9][0-9][0-9]-[0-9][0-9][0-9][0-9]",
+                                    "")))
+                            .build());
+                }
+                catch (Exception e) {
+                    System.err.println("Caught \"" + e.getMessage() + "\" on a worklog from " + issues.get(log.getInt("issueId")).getString("key") + " by " + log.getJSONObject(
+                            "author").getString("displayName"));
                 }
             });
-        });
 
         return list;
     }
@@ -104,8 +126,9 @@ public class JiraCloudConnector {
         String value;
         try {
             value = log.getJSONObject("comment").getJSONArray("content").getJSONObject(0).getJSONArray("content").getJSONObject(
-                0).getString("text");
-        } catch (Exception e) {
+                    0).getString("text");
+        }
+        catch (Exception e) {
             if (INCLUDE_EMPTY_COMMENT)
                 value = "--- EMPTY COMMENT ---";
             else
@@ -118,7 +141,7 @@ public class JiraCloudConnector {
         StringBuilder sb = new StringBuilder();
         if (obj.getJSONObject("fields").has("parent"))
             sb.append(obj.getJSONObject("fields").getJSONObject("parent").getJSONObject("fields").getString("summary")).append(
-                " ");
+                    " ");
 
         sb.append(obj.getJSONObject("fields").getString("summary"));
         return sb.toString();

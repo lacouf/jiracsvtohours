@@ -1,6 +1,5 @@
 package com.lacouf;
 
-import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -24,10 +23,7 @@ public class JiraCsvMain {
         System.out.println(props);
 
         var dateFrom = args.length == 3 ? args[2] : "01-01-1900 00:00";
-        new JiraCloudConnector(props)
-            .getAllIssuesAsync()
-            .thenAccept(e -> new JiraReporter().printCsvReport(e, dateFrom))
-            .join();
+        new JiraReporter().printCsvReport(new JiraCloudConnector(props).getAllWorklogs(), dateFrom);
     }
 
     private static Map<String, String> readProperties(String prefix) {
