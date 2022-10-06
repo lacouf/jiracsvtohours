@@ -11,8 +11,8 @@ public class JiraCsvMain {
             System.out.println("Usage:");
             System.out.println("    java -jar JiraCSV.jar eq1 \"sprint 3\" \"21-10-2020 15:00\"");
             System.out.println("    The 3rd param (date) is optional");
-            System.out.println("args[0] " + args[0]);
-            System.out.println("args[1] " + args[1]);
+            //System.out.println("args[0] " + args[0]);
+            //System.out.println("args[1] " + args[1]);
             if (args.length == 3)
                 System.out.println("args[2] " + args[2]);
             System.exit(0);
